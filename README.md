@@ -17,6 +17,7 @@ _\* As long as they use the same data format as base factorio for items/recipes_
 - [x] Parse mod data files
 - [ ] Take a look at smelting/rocketbuilding
   - [ ] Possible rethink assemblers - collect items that have crafting_categories/crafting_speed
+  - [ ] Add furnaces
 
 
 ## Roadmap

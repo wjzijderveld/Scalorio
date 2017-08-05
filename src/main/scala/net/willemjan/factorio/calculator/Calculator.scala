@@ -10,7 +10,7 @@ import scala.concurrent.duration.{Duration, DurationInt}
 
 class Calculator(library: Library) {
 
-  val assemblerMachines: Seq[AssemblingMachine] = library.assemblingMachines.values.toSeq
+  val assemblerMachines: Seq[AssemblingMachine] = library.assemblingMachines
 
 /*
   private def parse() = {
@@ -27,31 +27,9 @@ class Calculator(library: Library) {
 */
   def calculate(name: String, count: Double): Unit = calculate(name, count, Duration(1.0, TimeUnit.MINUTES))
   def calculate(name: String, count: Double, duration: Duration): Unit = {
-    val data = library
-
-    // data.items.map(item => item._2.subGroup).toSeq.distinct.foreach { println }
-
-    println(data.recipes.get(name))
-    println(data.fluids.get(name))
-
-    /**
-      * 1. get recipes with result $name - return ordered by cheapest? - later extendable by available research
-      * 2.
-      */
-
-    data.recipes.get(name) match {
-      case Some(recipe) => data.assemblingMachines.filter { item => item._2.categories.contains(recipe.category)} foreach { machine => makeBuild(count, duration, recipe, machine._2) }
-      case None => println(s"Unable to find specific recipe for $name")
-    }
-
-    val recipesWithResult = data.recipes.filter(r => r._2.results.exists(result => result.name == name))
-    recipesWithResult.foreach { println }
   }
 
   def calculateForRecipe(item: Item, recipe: Recipe, count: Double, duration: Duration, assemblingMachine: String): (Double, Int) = {
-
-    println(library.items.values.filter(_.craftingCategories.contains(recipe.category)))
-    println(library.items.values.map(x => x.craftingCategories).toSeq.flatten.distinct)
 
     val result = recipe.results.find(result => result.name == item.name).get
     val machine = assemblerMachines.find(m => m.name == assemblingMachine).get

@@ -1,7 +1,7 @@
 package net.willemjan.factorio.calculator
 
 import net.willemjan.factorio.loader.LuaLoader
-import net.willemjan.factorio.model.AssemblingCategory._
+import net.willemjan.factorio.model.RecipeCategory._
 import net.willemjan.factorio.model._
 import org.luaj.vm2.{LuaString, LuaTable, LuaValue, Varargs}
 
@@ -16,30 +16,32 @@ class FactorioParser(loader: LuaLoader) {
   def parse(): Library = {
     val parsedData = build(data.get("raw").checktable())
 
+
     Library(
-      parsedData.getOrElse("item", Map.empty).asInstanceOf[Map[String, Item]] + ("item" -> Item("test", "test", "test", "test", 1, Seq.empty)),
-      parsedData.getOrElse("fluid", Map.empty).asInstanceOf[Map[String, Fluid]],
-      parsedData.getOrElse("recipe", Map.empty).asInstanceOf[Map[String, Recipe]],
-      parsedData.getOrElse("assembling-machine", Map.empty).asInstanceOf[Map[String, AssemblingMachine]]
+      parsedData.filter(_.isInstanceOf[Item]).asInstanceOf[Seq[Item]],
+      parsedData.filter(_.isInstanceOf[Fluid]).asInstanceOf[Seq[Fluid]],
+      parsedData.filter(_.isInstanceOf[Recipe]).asInstanceOf[Seq[Recipe]],
+      parsedData.filter(_.isInstanceOf[AssemblingMachine]).asInstanceOf[Seq[AssemblingMachine]],
+      parsedData.find(_.isInstanceOf[RocketSilo]).getOrElse(RocketSilo()).asInstanceOf[RocketSilo]
     )
   }
 
-  private def build(typedTable: LuaTable): RawData = {
-    def walk(typedTable: LuaTable, from: LuaValue, acc: RawData): RawData = typedTable.next(from) match {
+  private def build(typedTable: LuaTable): Seq[AbstractItem] = {
+    def walk(typedTable: LuaTable, from: LuaValue, acc: Seq[AbstractItem]): Seq[AbstractItem] = typedTable.next(from) match {
       case LuaValue.NIL => acc
-      case args: Varargs => walk(typedTable, args.arg1(), acc + (args.arg1().tojstring() -> buildItems(args.arg(2).checktable())))
+      case args: Varargs => walk(typedTable, args.arg1(), acc ++ buildItems(args.arg(2).checktable()))
     }
 
-    walk(typedTable, LuaValue.NIL, Map.empty)
+    walk(typedTable, LuaValue.NIL, Seq.empty)
   }
 
-  private def buildItems(itemTable: LuaTable): Map[String, AbstractItem] = {
-    def walk(itemTable: LuaTable, from: LuaValue, acc: Map[String, AbstractItem]): Map[String, AbstractItem] = itemTable.next(from) match {
+  private def buildItems(itemTable: LuaTable): Seq[AbstractItem] = {
+    def walk(itemTable: LuaTable, from: LuaValue, acc: Seq[AbstractItem]): Seq[AbstractItem] = itemTable.next(from) match {
       case LuaValue.NIL => acc
-      case args: Varargs => walk(itemTable, args.arg1(), acc + (args.arg1().tojstring() -> buildItem(args.arg(2))))
+      case args: Varargs => walk(itemTable, args.arg1(), acc :+ buildItem(args.arg(2)))
     }
 
-    walk(itemTable, LuaValue.NIL, Map.empty)
+    walk(itemTable, LuaValue.NIL, Seq.empty)
   }
 
   private def getTableValues(table: LuaTable, from: LuaValue, acc: Seq[String]): Seq[String] = table.next(from) match {
@@ -84,17 +86,8 @@ class FactorioParser(loader: LuaLoader) {
           table.get("ingredient_count").toint(),
           buildCategories(table.get("crafting_categories").checktable())
         )
-        case "rocket-silo" => Item(
-          table.get("name").tojstring(),
-          table.get("subgroup").tojstring(),
-          table.get("icon").tojstring(),
-          table.get("place_result").tojstring(),
-          table.get("stack_size").optint(DefaultStacksize),
-          table.get("crafting_categories") match {
-            case LuaValue.NIL => Seq.empty
-            case table: LuaTable => getTableValues(table, LuaValue.NIL, Seq.empty)
-          }
-        )
+        case "furnace" => Furnace()
+        case "rocket-silo" => RocketSilo()
         case _ => UnmappedItem()
       }
   }

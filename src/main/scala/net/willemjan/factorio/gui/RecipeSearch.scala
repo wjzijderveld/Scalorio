@@ -13,7 +13,7 @@ class RecipeSearch(library: Library, calculator: Calculator) extends BorderPanel
   final val PlaceholderPane = "placeholder"
   final val TabbedRecipePane = "recipes"
 
-  lazy val itemNames: Seq[String] = library.items.values.map(_.name).toSeq.sorted
+  lazy val itemNames: Seq[String] = library.items.map(_.name).sorted
 
   minimumSize = new Dimension(600, 400)
   preferredSize = new Dimension(600, 400)
@@ -39,12 +39,12 @@ class RecipeSearch(library: Library, calculator: Calculator) extends BorderPanel
     case SelectionChanged(`listView`) => if (! listView.selection.adjusting) {
       if (listView.selection.items.nonEmpty) {
         val newItem = listView.selection.items(0)
-        val recipes = library.recipes.filter(recipe => recipe._2.results.exists(result => result.name == newItem))
+        val recipes = library.recipes.filter(recipe => recipe.results.exists(result => result.name == newItem))
 
         if (recipes.isEmpty) {
           contentPanel.show(PlaceholderPane)
         } else {
-          recipePane.setRecipes(newItem, recipes.values.toSeq)
+          recipePane.setRecipes(newItem, recipes)
           contentPanel.show(TabbedRecipePane)
         }
       }

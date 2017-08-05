@@ -5,7 +5,7 @@ import javax.swing.ImageIcon
 import javax.swing.border.EmptyBorder
 
 import net.willemjan.factorio.calculator.Calculator
-import net.willemjan.factorio.model.{Item, Library, Recipe, RecipeResult}
+import net.willemjan.factorio.model._
 
 import scala.concurrent.duration.FiniteDuration
 import scala.swing.GridBagPanel.{Anchor, Fill}
@@ -28,7 +28,7 @@ class RecipesPane(library: Library, calculator: Calculator) extends TabbedPane {
 class RecipePane(forItem: String, recipe: Recipe, library: Library, calculator: Calculator) extends GridBagPanel {
   border = new EmptyBorder(10, 10, 10, 10)
 
-  lazy val items: Seq[Item] = library.items.values.toSeq
+  lazy val items: Seq[Item] = library.items
   val basePath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio\\data\\base" // move to some sort of config object
 
   final val InfoPane = "info"
@@ -102,7 +102,34 @@ class RecipePane(forItem: String, recipe: Recipe, library: Library, calculator: 
     }) = c
   }) = c
 
-  val assemblerCountLabel = new Label("0 assemblers")
+
+  /**
+    * @todo Make a different layout for the different types of recipee
+    *       - crafting
+    *       - advanced-crafting
+    *       - crafting-with-fluid
+    *       - oil-processing
+    *       - chemistry
+    *       - centriuging
+    *
+    *       - smelting
+    *
+    *       - rocket-building
+    */
+
+
+  import RecipeCategory._
+
+  recipe.category match {
+    case Crafting | CraftingWithFluid | AdvancedCrafting | OilProcessing | Chemistry | Centrifuging => // whatever we did
+    case Smelting => ???
+    case RocketBuilding => ???
+  }
+
+  object assemblerCountLabel extends Label("0 assemblers")
+  object amountField extends TextField("1") { columns = 4 }
+  object durationField extends ComboBox(Seq("second", "minute"))
+  object assemblerField extends ComboBox(library.assemblingMachines.map(m => m.name).sorted)
 
   def recalculate(): Unit = {
     val result = calculator.calculateForRecipe(
@@ -115,10 +142,6 @@ class RecipePane(forItem: String, recipe: Recipe, library: Library, calculator: 
 
     assemblerCountLabel.text = f"${result._1}%2.2f assemblers"
   }
-
-  object amountField extends TextField("1") { columns = 4 }
-  object durationField extends ComboBox(Seq("second", "minute"))
-  object assemblerField extends ComboBox(library.assemblingMachines.values.map(m => m.name).toSeq.sorted)
 
   reactions += {
     case ValueChanged(`amountField`) => recalculate()
