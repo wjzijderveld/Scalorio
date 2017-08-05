@@ -1,6 +1,8 @@
-package net.willemjan.factorio.calculator
+package net.willemjan.factorio
 
-object Main extends App {
+import net.willemjan.factorio.calculator.Calculator
+
+object ConsoleApp extends App {
 
   private def exit(code: Int) = System.exit(code)
   private def printUsage() = Console.println(s"${Console.RED_B}You're on your own for now...${Console.RESET}")
@@ -12,12 +14,11 @@ object Main extends App {
       printUsage()
       exit(0)
     case (count) :: (name) :: tail =>
-      calculator.calculate(name, Integer.valueOf(count))
+      calculator.calculate(name, count.toDouble)
       exit(0)
     case _ =>
       printUsage()
       exit(1)
   }
-
   run(args.toList)
 }

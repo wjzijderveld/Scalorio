@@ -10,12 +10,13 @@ _\* As long as they use the same data format as base factorio for items/recipes_
 
 ## TODO
 
-- [ ] Parse mod list
-- [ ] Read mod info files
-- [ ] Define order of loading
-- [ ] Appened mod paths to LUA_PATH
-- [ ] Parse mod data files
+- [x] Parse mod list
+- [x] Read mod info files
+- [x] Define order of loading
+- [x] Appened mod paths to LUA_PATH
+- [x] Parse mod data files
 - [ ] Take a look at smelting/rocketbuilding
+  - [ ] Possible rethink assemblers - collect items that have crafting_categories/crafting_speed
 
 
 ## Roadmap
@@ -23,3 +24,5 @@ _\* As long as they use the same data format as base factorio for items/recipes_
 - [ ] Allow to specify location of Factorio folder (with some nice defaults)
 - [ ] Allow to specify which assemblers you want to use
 - [ ] Implement the above in a GUI :)
+- [ ] Create a standalone JAR from it
+- [ ] Create an installable from above JAR
