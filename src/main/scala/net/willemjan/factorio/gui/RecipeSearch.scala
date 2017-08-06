@@ -44,7 +44,7 @@ class RecipeSearch(library: Library, calculator: Calculator) extends BorderPanel
         if (recipes.isEmpty) {
           contentPanel.show(PlaceholderPane)
         } else {
-          recipePane.setRecipes(newItem, recipes)
+          recipePane.setRecipes(library.items.find(item => item.name == newItem).get, recipes)
           contentPanel.show(TabbedRecipePane)
         }
       }

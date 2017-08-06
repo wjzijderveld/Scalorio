@@ -16,11 +16,20 @@ class FactorioParser(loader: LuaLoader) {
   def parse(): Library = {
     val parsedData = build(data.get("raw").checktable())
 
+    val items = parsedData.filter(_.isInstanceOf[Item]).asInstanceOf[Seq[Item]]
+    val recipes = parsedData.filter(_.isInstanceOf[Recipe]).asInstanceOf[Seq[Recipe]].map(recipe => {
+      recipe.withIngredients(recipe.ingredients.map(ingredient => {
+        ingredient.withIcon(items.find(item => item.name == ingredient.name) match {
+          case Some(item) => Some(item.icon)
+          case _ => None
+        })
+      }))
+    })
 
     Library(
-      parsedData.filter(_.isInstanceOf[Item]).asInstanceOf[Seq[Item]],
+      items,
       parsedData.filter(_.isInstanceOf[Fluid]).asInstanceOf[Seq[Fluid]],
-      parsedData.filter(_.isInstanceOf[Recipe]).asInstanceOf[Seq[Recipe]],
+      recipes,
       parsedData.filter(_.isInstanceOf[AssemblingMachine]).asInstanceOf[Seq[AssemblingMachine]],
       parsedData.find(_.isInstanceOf[RocketSilo]).getOrElse(RocketSilo()).asInstanceOf[RocketSilo]
     )
@@ -60,7 +69,7 @@ class FactorioParser(loader: LuaLoader) {
         case "item" => Item(
           table.get("name").tojstring(),
           table.get("subgroup").tojstring(),
-          table.get("icon").tojstring(),
+          table.get("icon").tojstring().replace("__base__", loader.basePath),
           table.get("place_result").tojstring(),
           table.get("stack_size").optint(DefaultStacksize),
           table.get("crafting_categories") match {
@@ -113,7 +122,8 @@ class FactorioParser(loader: LuaLoader) {
         Ingredient(
           table.get(1).checkstring().toString,
           IngredientType.Item,
-          table.get(2).checknumber().todouble()
+          table.get(2).checknumber().todouble(),
+          None
         )
       } else {
         val itemType = table.get("type").checkstring().toString match {
@@ -121,7 +131,12 @@ class FactorioParser(loader: LuaLoader) {
           case "fluid" => IngredientType.Fluid
           case unknown => throw new Exception(s"Unknown ingredient type $unknown found")
         }
-        Ingredient(table.get("name").checkstring().toString, itemType, table.get("amount").checknumber().todouble())
+        Ingredient(
+          table.get("name").checkstring().toString,
+          itemType,
+          table.get("amount").checknumber().todouble(),
+          None
+        )
       }
   }
 

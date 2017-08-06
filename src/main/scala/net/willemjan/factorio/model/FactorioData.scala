@@ -38,9 +38,13 @@ abstract class AbstractItem
 
 case class Item(name: String, subGroup: String, icon: String, placeResult: String, stackSize: Int, craftingCategories: Seq[String] = Seq.empty) extends AbstractItem
 case class Fluid(name: String) extends AbstractItem
-case class Recipe(name: String, category: Category, ingredients: Seq[Ingredient], requiredEnergy: Integer, results: Seq[RecipeResult]) extends AbstractItem
+case class Recipe(name: String, category: Category, ingredients: Seq[Ingredient], requiredEnergy: Integer, results: Seq[RecipeResult]) extends AbstractItem {
+  def withIngredients(ingredients: Seq[Ingredient]): Recipe = this.copy(ingredients = ingredients)
+}
 case class AssemblingMachine(name: String, speed: Double, ingredientCount: Int, categories: Seq[Category]) extends AbstractItem
-case class Ingredient(name: String, itemType: Type, amount: Double) extends AbstractItem
+case class Ingredient(name: String, itemType: Type, amount: Double, var icon: Option[String]) extends AbstractItem {
+  def withIcon(icon: Option[String]): Ingredient = this.copy(icon = icon)
+}
 case class RocketSilo() extends AbstractItem
 case class Furnace() extends AbstractItem
 case class UnmappedItem() extends AbstractItem

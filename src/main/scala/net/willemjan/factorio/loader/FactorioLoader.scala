@@ -11,6 +11,8 @@ import scala.io.Source
 class FactorioLoader(rootDirectory: File, modLoader: ModLoader) extends LuaLoader with ResourceFinder {
   val DebugEnabled = true
 
+  def basePath: String = rootDirectory + "/base"
+
   val dataloaderFile: String = rootDirectory + "/core/lualib/dataloader.lua"
   val autoplaceUtilsFile: String = rootDirectory + "/core/lualib/autoplace_utils.lua"
   val utilFile: String = rootDirectory + "/core/lualib/util.lua"
@@ -59,7 +61,7 @@ class FactorioLoader(rootDirectory: File, modLoader: ModLoader) extends LuaLoade
     loadLuaLib("autoplace_utils")
     loadLuaLib("math3d")
 
-    globals.get("dofile").call(LuaValue.valueOf(rootDirectory + "\\base\\data.lua"))
+    globals.get("dofile").call(LuaValue.valueOf(s"$basePath\\data.lua"))
     globals.set("log", new LogFunction())
 
     if (DebugEnabled) println("Loaded base game data")

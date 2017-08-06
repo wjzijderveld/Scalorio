@@ -15,7 +15,7 @@ import scala.swing._
 import scala.swing.event._
 
 class RecipesPane(library: Library, calculator: Calculator) extends TabbedPane {
-  def setRecipes(forItem: String, recipes: Seq[Recipe]): Unit = {
+  def setRecipes(forItem: Item, recipes: Seq[Recipe]): Unit = {
     peer.removeAll()
 
     recipes.foreach(recipe => {
@@ -25,21 +25,13 @@ class RecipesPane(library: Library, calculator: Calculator) extends TabbedPane {
   }
 }
 
-class RecipePane(forItem: String, recipe: Recipe, library: Library, calculator: Calculator) extends GridBagPanel {
+class RecipePane(forItem: Item, recipe: Recipe, library: Library, calc: Calculator) extends BorderPanel {
+  implicit val calculator: Calculator = calc
+
   border = new EmptyBorder(10, 10, 10, 10)
 
   lazy val items: Seq[Item] = library.items
   val basePath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio\\data\\base" // move to some sort of config object
-
-  final val InfoPane = "info"
-  final val ConfigurationPane = "config"
-
-  val c = new Constraints
-  c.weightx = 1.0
-  c.weighty = 1.0
-  c.gridwidth = 1
-  c.anchor = Anchor.North
-  c.fill = Fill.Both
 
   layout(new GridBagPanel {
     val c = new Constraints
@@ -100,7 +92,7 @@ class RecipePane(forItem: String, recipe: Recipe, library: Library, calculator: 
       }}
 
     }) = c
-  }) = c
+  }) = BorderPanel.Position.North
 
 
   /**
@@ -120,12 +112,15 @@ class RecipePane(forItem: String, recipe: Recipe, library: Library, calculator: 
 
   import RecipeCategory._
 
-  recipe.category match {
-    case Crafting | CraftingWithFluid | AdvancedCrafting | OilProcessing | Chemistry | Centrifuging => // whatever we did
+  val recipeCalculationPanel: Panel = recipe.category match {
+    case Crafting | CraftingWithFluid | AdvancedCrafting | OilProcessing | Chemistry | Centrifuging => ??? // whatever we did
     case Smelting => ???
-    case RocketBuilding => ???
+    case RocketBuilding => new RocketSiloCalculation(forItem, recipe)
   }
 
+  layout(recipeCalculationPanel) = BorderPanel.Position.Center
+
+  /*
   object assemblerCountLabel extends Label("0 assemblers")
   object amountField extends TextField("1") { columns = 4 }
   object durationField extends ComboBox(Seq("second", "minute"))
@@ -133,7 +128,7 @@ class RecipePane(forItem: String, recipe: Recipe, library: Library, calculator: 
 
   def recalculate(): Unit = {
     val result = calculator.calculateForRecipe(
-      items.find(item => item.name == forItem).get,
+      forItem,
       recipe,
       amountField.text.toDouble,
       FiniteDuration(1L, durationField.selection.item),
@@ -198,6 +193,7 @@ class RecipePane(forItem: String, recipe: Recipe, library: Library, calculator: 
     }}
 
   }) = c
+  */
 
   // val ingredientTable = Table(recipe.ingredients.map(ingredient => Array(ingredient.name, ingredient.amount)).toArray, Seq("Ingredient", "Amount")) {
   // }

@@ -39,12 +39,27 @@ class Calculator(library: Library) {
     (requiredAseemblers, 0)
   }
 
+  def calculateRocketBuilding(item: Item, recipe: Recipe, amount: Int, duration: Duration) = {
+    val amountPerCraft = recipe.results.find(result => result.name == item.name).get.amount
+    val timePerCraft = recipe.requiredEnergy
+
+    val prodModifiers = 1
+    val speedModifiers = 1 // speed modules and rocket silo crafting speed
+    val craftCount = Math.ceil((amountPerCraft * prodModifiers) / (timePerCraft * speedModifiers) * amount / duration.toSeconds).toInt
+
+    CalculationResult(craftCount, 0.0, recipe.ingredients.map(ingredient => {
+      ingredient.copy(amount = ingredient.amount * craftCount * amount)
+    }))
+  }
+
   private def makeBuild(count: Double, duration: Duration, recipe: Recipe, assemblingMachine: AssemblingMachine) = {
     val countPerSecond = count / duration.toSeconds
 
     println(f"${countPerSecond * recipe.requiredEnergy / assemblingMachine.speed}%1.2f x ${assemblingMachine.name}")
   }
 }
+
+case class CalculationResult(crafters: Int, energyRequired: Double, ingredients: Seq[Ingredient])
 
 object Calculator {
   def apply() = {
