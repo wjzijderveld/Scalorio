@@ -5,28 +5,37 @@ import javax.swing.ImageIcon
 import javax.swing.border.EmptyBorder
 
 import net.willemjan.factorio.calculator.Calculator
+import net.willemjan.factorio.gui.RecipeSearch
+import net.willemjan.factorio.gui.recipe.calculations.event._
+import net.willemjan.factorio.gui.recipe.calculations._
 import net.willemjan.factorio.model._
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.TimeUnit
 import scala.swing.GridBagPanel.{Anchor, Fill}
 import scala.swing.Swing.EmptyIcon
 import scala.swing.TabbedPane.Page
 import scala.swing._
 import scala.swing.event._
 
-class RecipesPane(library: Library, calculator: Calculator) extends TabbedPane {
+class RecipesPane(val search: RecipeSearch, val library: Library, val calculator: Calculator) extends TabbedPane {
   def setRecipes(forItem: Item, recipes: Seq[Recipe]): Unit = {
     peer.removeAll()
 
     recipes.foreach(recipe => {
-      pages += new Page(recipe.name, new RecipePane(forItem, recipe, library, calculator))
+      pages += new Page(recipe.name, new RecipePane(forItem, recipe, this))
     })
 
   }
+
+  def setAmountAndTimeUnit(amount: Int, timeUnit: TimeUnit, recipe: Option[Recipe] = None): Unit = recipe match {
+    case None => pages(0).content.asInstanceOf[RecipePane].setAmountAndTimeUnit(amount, timeUnit)
+    case Some(recipe) => pages.find(p => p.title == recipe.name).get.asInstanceOf[RecipePane].setAmountAndTimeUnit(amount, timeUnit)
+  }
 }
 
-class RecipePane(forItem: Item, recipe: Recipe, library: Library, calc: Calculator) extends BorderPanel {
-  implicit val calculator: Calculator = calc
+class RecipePane(forItem: Item, recipe: Recipe, parent: RecipesPane) extends BorderPanel {
+  implicit val calculator: Calculator = parent.calculator
+  val library = parent.library
 
   border = new EmptyBorder(10, 10, 10, 10)
 
@@ -94,107 +103,23 @@ class RecipePane(forItem: Item, recipe: Recipe, library: Library, calc: Calculat
     }) = c
   }) = BorderPanel.Position.North
 
-
-  /**
-    * @todo Make a different layout for the different types of recipee
-    *       - crafting
-    *       - advanced-crafting
-    *       - crafting-with-fluid
-    *       - oil-processing
-    *       - chemistry
-    *       - centriuging
-    *
-    *       - smelting
-    *
-    *       - rocket-building
-    */
-
-
   import RecipeCategory._
 
-  val recipeCalculationPanel: Panel = recipe.category match {
-    case Crafting | CraftingWithFluid | AdvancedCrafting | OilProcessing | Chemistry | Centrifuging => ??? // whatever we did
+  val recipeCalculationPanel: CalculationPanel = recipe.category match {
+    case Crafting | CraftingWithFluid | AdvancedCrafting | OilProcessing | Chemistry | Centrifuging => new CraftingCalculation(forItem, recipe, library.assemblingMachines)
     case Smelting => ???
-    case RocketBuilding => new RocketSiloCalculation(forItem, recipe)
+    case RocketBuilding => new RocketSiloCalculation(parent.search, forItem, recipe)
   }
 
+  listenTo(recipeCalculationPanel)
   layout(recipeCalculationPanel) = BorderPanel.Position.Center
 
-  /*
-  object assemblerCountLabel extends Label("0 assemblers")
-  object amountField extends TextField("1") { columns = 4 }
-  object durationField extends ComboBox(Seq("second", "minute"))
-  object assemblerField extends ComboBox(library.assemblingMachines.map(m => m.name).sorted)
-
-  def recalculate(): Unit = {
-    val result = calculator.calculateForRecipe(
-      forItem,
-      recipe,
-      amountField.text.toDouble,
-      FiniteDuration(1L, durationField.selection.item),
-      assemblerField.selection.item
-    )
-
-    assemblerCountLabel.text = f"${result._1}%2.2f assemblers"
-  }
-
   reactions += {
-    case ValueChanged(`amountField`) => recalculate()
+    case e: ChangeItemRequested => println("We want to change somethine??")
   }
 
-  listenTo(amountField, durationField.selection, assemblerField.selection)
+  def setAmountAndTimeUnit(amount: Int, timeUnit: TimeUnit): Unit = {
+    recipeCalculationPanel.setAmountAndTimeUnit(amount, timeUnit)
+  }
 
-  c.gridy = 1
-  layout(new FlowPanel {
-    contents.append(
-      amountField,
-      new Label("item(s) per", EmptyIcon, Alignment.Left),
-      durationField,
-      new Label("using"),
-      assemblerField,
-      new Label("assemblers with"),
-      new TextField("0"),
-      new Label("speed modules and"),
-      new TextField("0"),
-      new Label("productivity modules")
-    )
-  }) = c
-
-  c.gridy = 2
-  layout(new GridBagPanel {
-
-    recalculate()
-
-    val c = new Constraints
-    c.weightx = 1.0
-    c.weighty = 1.0
-    c.gridwidth = 1
-    c.anchor = Anchor.North
-    c.fill = Fill.Both
-
-    c.gridx = 0
-    c.gridy = 0
-    layout(assemblerCountLabel) = c
-    c.gridy = 1
-    layout(new Label("# kJ")) = c
-
-    c.gridx = 1
-    c.gridy = 0
-    recipe.ingredients.indices.foreach { index => {
-      c.gridy = 0 + index
-      val ingredient = recipe.ingredients(index)
-      val icon = items.find(item => item.name == ingredient.name) match {
-        case Some(item) =>
-          val uri = new File(item.icon.replace("__base__", basePath)).toURI
-          new ImageIcon(uri.toURL)
-        case _ => EmptyIcon
-      }
-      layout(new Label(s"${ingredient.amount} x ${ingredient.name}", icon, Alignment.Left)) = c
-    }}
-
-  }) = c
-  */
-
-  // val ingredientTable = Table(recipe.ingredients.map(ingredient => Array(ingredient.name, ingredient.amount)).toArray, Seq("Ingredient", "Amount")) {
-  // }
 }

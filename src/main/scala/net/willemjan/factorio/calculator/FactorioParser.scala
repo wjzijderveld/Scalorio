@@ -82,7 +82,7 @@ class FactorioParser(loader: LuaLoader) {
           table.get("name").toString,
           mapCraftingCategory(table.get("category").optstring(LuaString.valueOf("crafting")).toString),
           buildIngredients(table),
-          table.get("energy_required").optint(1),
+          table.get("energy_required").optdouble(1.0),
           if (table.keys().exists(key => Seq("normal", "expensive").contains(key.tojstring()))) {
             buildResults(table.get("normal").checktable())
           } else {

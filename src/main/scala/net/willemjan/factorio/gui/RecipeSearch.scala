@@ -5,6 +5,7 @@ import net.willemjan.factorio.gui.recipe.RecipesPane
 import net.willemjan.factorio.gui.swing.CardPanel
 import net.willemjan.factorio.model.Library
 
+import scala.concurrent.duration.TimeUnit
 import scala.swing._
 import scala.swing.event._
 
@@ -26,17 +27,31 @@ class RecipeSearch(library: Library, calculator: Calculator) extends BorderPanel
       contents = listView
     }) = BorderPanel.Position.Center
   }
-  object recipePane extends RecipesPane(library, calculator) {}
+  object recipePane extends RecipesPane(this, library, calculator) {}
   object contentPanel extends CardPanel {
     add(new TabbedPane, PlaceholderPane)
     add(recipePane, TabbedRecipePane)
   }
 
+  def changeItem(item: String, amount: Int, timeUnit: TimeUnit): Unit = {
+    val index = itemNames.indexOf(item)
+    deafTo(searchField, listView.selection)
+    searchField.text = item
+    listView.listData = Seq(item)
+    listenTo(searchField, listView.selection)
+
+    listView.selectIndices(0)
+    recipePane.setAmountAndTimeUnit(amount, timeUnit)
+  }
+
   listenTo(searchField, listView.selection)
 
   reactions += {
-    case ValueChanged(`searchField`) => listView.listData = itemNames.filter(_.contains(searchField.text)).sorted
+    case ValueChanged(`searchField`) =>
+      println("searchField updated")
+      listView.listData = itemNames.filter(_.contains(searchField.text)).sorted
     case SelectionChanged(`listView`) => if (! listView.selection.adjusting) {
+      println("Changed list selection", listView.selection.items)
       if (listView.selection.items.nonEmpty) {
         val newItem = listView.selection.items(0)
         val recipes = library.recipes.filter(recipe => recipe.results.exists(result => result.name == newItem))
@@ -50,7 +65,7 @@ class RecipeSearch(library: Library, calculator: Calculator) extends BorderPanel
       }
 
       if (listView.selection.items.isEmpty) {
-        contentPanel.show(PlaceholderPane)
+        // deselect, but probably because something else got focus
       }
     }
   }

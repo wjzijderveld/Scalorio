@@ -1,22 +1,28 @@
-package net.willemjan.factorio.gui.recipe
+package net.willemjan.factorio.gui.recipe.calculations
 
 import java.util.concurrent.TimeUnit
 import javax.swing.ImageIcon
 
 import net.willemjan.factorio.calculator.{CalculationResult, Calculator}
+import net.willemjan.factorio.gui.RecipeSearch
+import net.willemjan.factorio.gui.recipe.calculations.event.IngredientClicked
 import net.willemjan.factorio.model.{Ingredient, Item, Recipe}
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
-import scala.swing.Swing.EmptyIcon
 import scala.swing._
 import scala.swing.event._
 
-class RocketSiloCalculation(item: Item, recipe: Recipe)(implicit val calculator: Calculator) extends BorderPanel with Publisher {
+class RocketSiloCalculation(controller: RecipeSearch, item: Item, recipe: Recipe)(implicit val calculator: Calculator) extends BorderPanel with CalculationPanel {
 
   final val DefaultItemCount = 100
   final val DefaultDuration = FiniteDuration(1, "minute")
 
   val durationOptions = Seq("second", "minute", "hour")
+
+  def setAmountAndTimeUnit(amount: Int, timeUnit: TimeUnit): Unit = {
+    amountField.text = amount.toString
+    durationField.setTimeUnit(timeUnit)
+  }
 
   object amountField extends TextField {
     text = DefaultItemCount.toString
@@ -27,12 +33,13 @@ class RocketSiloCalculation(item: Item, recipe: Recipe)(implicit val calculator:
     }
   }
   object durationField extends ComboBox(durationOptions) {
-    selection.item = DefaultDuration.unit match {
+    def toDuration: Duration = FiniteDuration(1, selection.item)
+    def setTimeUnit(timeUnit: TimeUnit): Unit = selection.item = timeUnit match {
       case TimeUnit.MINUTES => "minute"
       case TimeUnit.HOURS => "hour"
       case _ => "second"
     }
-    def toDuration: Duration = FiniteDuration(1, selection.item)
+    setTimeUnit(DefaultDuration.unit)
   }
   object configPanel extends FlowPanel {
     contents.append(
@@ -59,15 +66,6 @@ class RocketSiloCalculation(item: Item, recipe: Recipe)(implicit val calculator:
       case CalculationUpdated(_, energyRequired, _) => text = f"$energyRequired%2.1f kWh"
     }
   }
-  case class IngredientLabel(ingredient: Ingredient) extends Label {
-    text = f"${ingredient.amount}%2.2f x ${ingredient.name}"
-    horizontalTextPosition = Alignment.Right
-    horizontalAlignment = Alignment.Left
-    icon = ingredient.icon match {
-      case None => EmptyIcon
-      case Some(icon) => new ImageIcon(icon)
-    }
-  }
   object calculationPanel extends BoxPanel(Orientation.Horizontal) {
     contents += new BoxPanel(Orientation.Vertical) {
       contents += requiredSilosLabel
@@ -76,7 +74,10 @@ class RocketSiloCalculation(item: Item, recipe: Recipe)(implicit val calculator:
 
     contents += new BoxPanel(Orientation.Vertical) {
       def drawIngredients(ingredients: Seq[Ingredient]): Unit = ingredients.foreach {
-        ingredient => contents += IngredientLabel(ingredient)
+        ingredient =>
+          val label = IngredientLabel(ingredient)
+          listenTo(label)
+          contents += label
       }
 
       listenTo(RocketSiloCalculation.this)
@@ -85,18 +86,20 @@ class RocketSiloCalculation(item: Item, recipe: Recipe)(implicit val calculator:
         case CalculationUpdated(_, _, ingredients) =>
           contents.clear()
           drawIngredients(ingredients)
+        case e: IngredientClicked => controller.changeItem(e.item, e.amount, durationField.toDuration.unit)
       }
     }
 
     contents += Swing.VGlue
   }
 
-  listenTo(amountField, durationField.selection)
+  listenTo(amountField, durationField.selection, calculationPanel)
 
   reactions += {
     case ValueChanged(`amountField`) | SelectionChanged(`durationField`) =>
       val result: CalculationResult = calculator.calculateRocketBuilding(item, recipe, amountField.getInt, durationField.toDuration)
       publish(CalculationUpdated(result.crafters, result.energyRequired, result.ingredients))
+    case e: IngredientClicked => publish(e)
   }
 
   layout(configPanel) = BorderPanel.Position.North
@@ -106,4 +109,4 @@ class RocketSiloCalculation(item: Item, recipe: Recipe)(implicit val calculator:
   publish(CalculationUpdated(result.crafters, result.energyRequired, result.ingredients))
 }
 
-case class CalculationUpdated(buildCount: Double, energyRequired: Double = 0.0, ingredientsRequired: Seq[Ingredient] = Seq.empty) extends Event
+
