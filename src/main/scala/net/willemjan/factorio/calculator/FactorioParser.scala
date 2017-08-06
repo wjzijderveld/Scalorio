@@ -17,18 +17,25 @@ class FactorioParser(loader: LuaLoader) {
     val parsedData = build(data.get("raw").checktable())
 
     val items = parsedData.filter(_.isInstanceOf[Item]).asInstanceOf[Seq[Item]]
+    val fluids = parsedData.filter(_.isInstanceOf[Fluid]).asInstanceOf[Seq[Fluid]]
     val recipes = parsedData.filter(_.isInstanceOf[Recipe]).asInstanceOf[Seq[Recipe]].map(recipe => {
       recipe.withIngredients(recipe.ingredients.map(ingredient => {
-        ingredient.withIcon(items.find(item => item.name == ingredient.name) match {
-          case Some(item) => Some(item.icon)
-          case _ => None
+        ingredient.withIcon(ingredient.itemType match {
+          case IngredientType.Item => items.find(item => item.name == ingredient.name) match {
+            case Some(item) => Some(item.icon)
+            case _ => None
+          }
+          case IngredientType.Fluid => fluids.find(item => item.name == ingredient.name) match {
+            case Some(item) => Some(item.icon)
+            case _ => None
+          }
         })
       }))
     })
 
     Library(
       items,
-      parsedData.filter(_.isInstanceOf[Fluid]).asInstanceOf[Seq[Fluid]],
+      fluids,
       recipes,
       parsedData.filter(_.isInstanceOf[AssemblingMachine]).asInstanceOf[Seq[AssemblingMachine]],
       parsedData.find(_.isInstanceOf[RocketSilo]).getOrElse(RocketSilo()).asInstanceOf[RocketSilo]
@@ -77,7 +84,10 @@ class FactorioParser(loader: LuaLoader) {
             case table: LuaTable => getTableValues(table, LuaValue.NIL, Seq.empty)
           }
         )
-        case "fluid" => Fluid(table.get("name").toString)
+        case "fluid" => Fluid(
+          table.get("name").tojstring,
+          table.get("icon").tojstring.replace("__base__", loader.basePath)
+        )
         case "recipe" => Recipe(
           table.get("name").toString,
           mapCraftingCategory(table.get("category").optstring(LuaString.valueOf("crafting")).toString),

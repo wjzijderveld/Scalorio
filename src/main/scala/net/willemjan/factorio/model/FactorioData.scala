@@ -37,7 +37,7 @@ import RecipeCategory._
 abstract class AbstractItem
 
 case class Item(name: String, subGroup: String, icon: String, placeResult: String, stackSize: Int, craftingCategories: Seq[String] = Seq.empty) extends AbstractItem
-case class Fluid(name: String) extends AbstractItem
+case class Fluid(name: String, icon: String) extends AbstractItem
 case class Recipe(name: String, category: Category, ingredients: Seq[Ingredient], requiredEnergy: Double, results: Seq[RecipeResult]) extends AbstractItem {
   def withIngredients(ingredients: Seq[Ingredient]): Recipe = this.copy(ingredients = ingredients)
 }

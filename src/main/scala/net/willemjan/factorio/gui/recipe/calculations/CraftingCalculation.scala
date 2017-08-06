@@ -59,7 +59,7 @@ class CraftingCalculation(item: Item, recipe: Recipe, assemblers: Seq[Assembling
     reactions += {
       case CalculationUpdated(amount, _, _) =>
         println("Reacting with label")
-        text = s"$amount assembler(s)"
+        text = s"$amount ${assemblerField.selection.item}(s)"
     }
   }
   object requiredEnergyLabel extends Label {
