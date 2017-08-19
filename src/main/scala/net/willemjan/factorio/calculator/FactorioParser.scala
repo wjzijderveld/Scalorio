@@ -69,6 +69,9 @@ class FactorioParser(loader: LuaLoader) {
     )
   }
 
+  /*
+   * TODO: Check if it makes more sense to do the normal/expensive on a higher level
+   */
   private def buildItem(luaItem: LuaValue): AbstractItem = luaItem match {
     case LuaValue.NIL => throw new Exception("Found NIL item, no way to handle this")
     case table: LuaTable =>
