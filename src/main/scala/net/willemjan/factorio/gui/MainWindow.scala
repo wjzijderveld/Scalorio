@@ -25,7 +25,7 @@ object MainWindow extends SimpleSwingApplication {
   lazy val search: RecipeSearch = new RecipeSearch(library, calculator)
 
   def top = new MainFrame {
-    val minimumDimension = new Dimension(600,400)
+    val minimumDimension = new Dimension(800,600)
     title = "The adapthing Factorio Calculator"
     contents = search
     minimumSize = minimumDimension

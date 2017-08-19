@@ -39,33 +39,33 @@ class Calculator(library: Library) {
     (requiredAseemblers, 0)
   }
 
-  def calculateRocketBuilding(item: Item, recipe: Recipe, amount: Int, duration: Duration): CalculationResult = {
+  def calculateRocketBuilding(item: Item, recipe: Recipe, amount: Int, duration: Duration, modules: Modules = Modules.empty): CalculationResult = {
     val amountPerCraft = recipe.results.find(result => result.name == item.name).get.amount
     val timePerCraft = recipe.requiredEnergy
 
-    val craftCount = calculateRequiredCrafters(amount, duration, amountPerCraft, timePerCraft, Modules.empty)
+    val craftCount = calculateRequiredCrafters(amount, duration, amountPerCraft, timePerCraft, modules)
 
     CalculationResult(craftCount, 0.0, recipe.ingredients.map(ingredient => {
-      ingredient.copy(amount = ingredient.amount  * amount)
+      ingredient.copy(amount = ingredient.amount / modules.productivity.getModifier * amount)
     }))
   }
 
-  def calculateCrafting(item: Item, recipe: Recipe, assembler: AssemblingMachine, amount: Int, duration: Duration): CalculationResult = {
+  def calculateCrafting(item: Item, recipe: Recipe, assembler: AssemblingMachine, amount: Int, duration: Duration, modules: Modules = Modules.empty): CalculationResult = {
     val amountPerCraft = recipe.results.find(result => result.name == item.name).get.amount
     val timePerCraft = recipe.requiredEnergy * assembler.speed
 
-    val craftCount = calculateRequiredCrafters(amount, duration, amountPerCraft, timePerCraft, Modules.empty)
+    val craftCount = calculateRequiredCrafters(amount, duration, amountPerCraft, timePerCraft, modules)
 
     CalculationResult(craftCount, 0.0, recipe.ingredients.map(ingredient => {
-      ingredient.copy(amount = ingredient.amount * amount)
+      ingredient.copy(amount = ingredient.amount / modules.productivity.getModifier * amount)
     }))
   }
 
   def calculateRequiredCrafters(amount: Int, duration: Duration, amountPerCraft: Double, timePerCraft: Double, modules: Modules): Int = {
     val itemsPerSecond: Double = amount.toDouble / duration.toSeconds
-    val craftResultsPerSecond = (amountPerCraft.toDouble * modules.productivity.getModifier) / (timePerCraft.toDouble * modules.speed.getModifier)
+    val craftResultsPerSecond = (amountPerCraft.toDouble / modules.productivity.getModifier) / (timePerCraft.toDouble / modules.speed.getModifier)
     val value = Math.round(itemsPerSecond / craftResultsPerSecond * 100)
-    println(s"${itemsPerSecond} / ${craftResultsPerSecond} = ${value / 100}")
+    println(s"$itemsPerSecond / ( $amountPerCraft / ${modules.productivity.getModifier} ) / ( $timePerCraft / ${modules.speed.getModifier} ) = ${value / 100}")
     Math.ceil(value / 100).toInt
   }
 

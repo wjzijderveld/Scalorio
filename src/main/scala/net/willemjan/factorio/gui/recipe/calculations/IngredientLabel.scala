@@ -3,7 +3,7 @@ package net.willemjan.factorio.gui.recipe.calculations
 import javax.swing.ImageIcon
 
 import net.willemjan.factorio.gui.recipe.calculations.event.IngredientClicked
-import net.willemjan.factorio.model.Ingredient
+import net.willemjan.factorio.model.{Ingredient, IngredientType, Item}
 
 import scala.swing.Swing.EmptyIcon
 import scala.swing._
@@ -20,10 +20,14 @@ case class IngredientLabel(ingredient: Ingredient) extends Button with Publisher
     case Some(icon) => new ImageIcon(icon)
   }
 
-  listenTo(mouse.moves)
+  if (ingredient.itemType == IngredientType.Item) { // Ignore fluids for now
+    listenTo(mouse.moves)
+  }
 
   reactions += {
-    case event: ButtonClicked if event.source == this => publish(IngredientClicked(ingredient.name, Math.ceil(ingredient.amount).toInt))
+    case event: ButtonClicked =>
+      println(s"Button clicked $event")
+      publish(IngredientClicked(ingredient.name, Math.ceil(ingredient.amount).toInt))
     case event: MouseEntered if event.source == this => borderPainted = true
     case event: MouseExited if event.source == this => borderPainted = false
   }

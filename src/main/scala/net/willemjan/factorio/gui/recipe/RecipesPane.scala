@@ -106,17 +106,13 @@ class RecipePane(forItem: Item, recipe: Recipe, parent: RecipesPane) extends Bor
   import RecipeCategory._
 
   val recipeCalculationPanel: CalculationPanel = recipe.category match {
-    case Crafting | CraftingWithFluid | AdvancedCrafting | OilProcessing | Chemistry | Centrifuging => new CraftingCalculation(forItem, recipe, library.assemblingMachines)
+    case Crafting | CraftingWithFluid | AdvancedCrafting | OilProcessing | Chemistry | Centrifuging => new CraftingCalculation(parent.search, forItem, recipe, library.assemblingMachines)
     case Smelting => ???
     case RocketBuilding => new RocketSiloCalculation(parent.search, forItem, recipe)
   }
 
   listenTo(recipeCalculationPanel)
   layout(recipeCalculationPanel) = BorderPanel.Position.Center
-
-  reactions += {
-    case e: ChangeItemRequested => println("We want to change somethine??")
-  }
 
   def setAmountAndTimeUnit(amount: Int, timeUnit: TimeUnit): Unit = {
     recipeCalculationPanel.setAmountAndTimeUnit(amount, timeUnit)

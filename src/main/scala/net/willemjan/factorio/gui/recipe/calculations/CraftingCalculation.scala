@@ -2,14 +2,16 @@ package net.willemjan.factorio.gui.recipe.calculations
 
 import java.util.concurrent.TimeUnit
 
-import net.willemjan.factorio.calculator.{CalculationResult, Calculator}
+import net.willemjan.factorio.calculator.{CalculationResult, Calculator, Module, Modules}
+import net.willemjan.factorio.gui.RecipeSearch
+import net.willemjan.factorio.gui.recipe.calculations.event.IngredientClicked
 import net.willemjan.factorio.model.{AssemblingMachine, Ingredient, Item, Recipe}
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.swing._
 import scala.swing.event._
 
-class CraftingCalculation(item: Item, recipe: Recipe, assemblers: Seq[AssemblingMachine])(implicit val calculator: Calculator) extends BorderPanel with CalculationPanel {
+class CraftingCalculation(controller: RecipeSearch, item: Item, recipe: Recipe, assemblers: Seq[AssemblingMachine])(implicit val calculator: Calculator) extends BoxPanel(Orientation.Vertical) with CalculationPanel {
 
   final val DefaultItemCount = 1
   final val DefaultDuration = FiniteDuration(1, "second")
@@ -26,7 +28,7 @@ class CraftingCalculation(item: Item, recipe: Recipe, assemblers: Seq[Assembling
     text = DefaultItemCount.toString
     columns = 5
     def getInt: Int = text match {
-      case "" => 1
+      case "" => DefaultItemCount
       case s => s.toInt
     }
   }
@@ -42,13 +44,34 @@ class CraftingCalculation(item: Item, recipe: Recipe, assemblers: Seq[Assembling
   object assemblerField extends ComboBox(assemblers.filter(_.categories.contains(recipe.category)).map(_.name)) {
     def getAssembler: AssemblingMachine = assemblers.find(_.name == selection.item).get
   }
-  object configPanel extends FlowPanel {
+  object speedModuleCountField extends TextField {
+    text = DefaultItemCount.toString
+    columns = 2
+    def getInt: Int = text match {
+      case "" => DefaultItemCount
+      case s => s.toInt
+    }
+  }
+  object productivityModuleCountField extends TextField {
+    text = DefaultItemCount.toString
+    columns = 2
+    def getInt: Int = text match {
+      case "" => DefaultItemCount
+      case s => s.toInt
+    }
+  }
+  object configPanel extends FlowPanel(FlowPanel.Alignment.Leading)() {
     contents.append(
       amountField,
       new Label(s"${item.name}(s) per"),
       durationField,
       new Label("using"),
-      assemblerField
+      assemblerField,
+      new Label("and with"),
+      speedModuleCountField,
+      new Label("speed modules and"),
+      productivityModuleCountField,
+      new Label("productivity modules.")
     )
   }
   object requiredAssemblers extends Label {
@@ -79,7 +102,10 @@ class CraftingCalculation(item: Item, recipe: Recipe, assemblers: Seq[Assembling
 
     contents += new BoxPanel(Orientation.Vertical) {
       def drawIngredients(ingredients: Seq[Ingredient]): Unit = ingredients.foreach {
-        ingredient => contents += IngredientLabel(ingredient)
+        ingredient =>
+          val label = IngredientLabel(ingredient)
+          listenTo(label)
+          contents += label
       }
 
       listenTo(CraftingCalculation.this)
@@ -89,29 +115,45 @@ class CraftingCalculation(item: Item, recipe: Recipe, assemblers: Seq[Assembling
           println("Reacting to CalcuationUpdated")
           contents.clear()
           drawIngredients(ingredients)
+        case e: IngredientClicked =>
+          println(s"clicked $e")
+          controller.changeItem(e.item, e.amount, durationField.toDuration.unit)
       }
     }
 
     contents += Swing.VGlue
   }
 
-  listenTo(amountField, durationField.selection, assemblerField.selection)
+  listenTo(amountField, durationField.selection, assemblerField.selection, speedModuleCountField, productivityModuleCountField)
 
   def triggerCalculation(): Unit = {
-    val result: CalculationResult = calculator.calculateCrafting(item, recipe, assemblerField.getAssembler, amountField.getInt, durationField.toDuration)
+    val result: CalculationResult = calculator.calculateCrafting(
+      item,
+      recipe,
+      assemblerField.getAssembler,
+      amountField.getInt,
+      durationField.toDuration,
+      Modules(
+        Module.speed(3)(speedModuleCountField.getInt),
+        Module.speed(3)(productivityModuleCountField.getInt)
+      )
+    )
     println("Publishing", result)
     publish(CalculationUpdated(result.crafters, result.energyRequired, result.ingredients))
   }
 
   reactions += {
-    case ValueChanged(`amountField`) | SelectionChanged(`durationField`) =>
-      println("Publishing after change", amountField.getInt, durationField.toDuration.unit)
-      triggerCalculation
+    case e: EditDone if e.source == amountField =>
+      println("Publishing after change WTF", amountField.getInt, durationField.toDuration.unit)
+      triggerCalculation()
+    case SelectionChanged(`durationField`) => triggerCalculation()
     case _: CalculationUpdated => println("Update received")
   }
 
-  layout(configPanel) = BorderPanel.Position.North
-  layout(calculationPanel) = BorderPanel.Position.Center
+  contents += configPanel
+  contents += calculationPanel
+//  layout(configPanel) = BorderPanel.Position.North
+//  layout(calculationPanel) = BorderPanel.Position.Center
 
-  triggerCalculation
+  triggerCalculation()
 }

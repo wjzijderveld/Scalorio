@@ -3,7 +3,7 @@ package net.willemjan.factorio.gui.recipe.calculations
 import java.util.concurrent.TimeUnit
 import javax.swing.ImageIcon
 
-import net.willemjan.factorio.calculator.{CalculationResult, Calculator}
+import net.willemjan.factorio.calculator.{CalculationResult, Calculator, Module, Modules}
 import net.willemjan.factorio.gui.RecipeSearch
 import net.willemjan.factorio.gui.recipe.calculations.event.IngredientClicked
 import net.willemjan.factorio.model.{Ingredient, Item, Recipe}
@@ -16,6 +16,8 @@ class RocketSiloCalculation(controller: RecipeSearch, item: Item, recipe: Recipe
 
   final val DefaultItemCount = 100
   final val DefaultDuration = FiniteDuration(1, "minute")
+  final val DefaultSpeedModuleCount = 8
+  final val DefaultProductivityModuleCount = 4
 
   val durationOptions = Seq("second", "minute", "hour")
 
@@ -41,11 +43,32 @@ class RocketSiloCalculation(controller: RecipeSearch, item: Item, recipe: Recipe
     }
     setTimeUnit(DefaultDuration.unit)
   }
+  object speedModuleCountField extends TextField {
+    text = DefaultItemCount.toString
+    columns = 2
+    def getInt: Int = text match {
+      case "" => DefaultSpeedModuleCount
+      case s => s.toInt
+    }
+  }
+  object productivityModuleCountField extends TextField {
+    text = DefaultItemCount.toString
+    columns = 2
+    def getInt: Int = text match {
+      case "" => DefaultProductivityModuleCount
+      case s => s.toInt
+    }
+  }
   object configPanel extends FlowPanel {
     contents.append(
       amountField,
       new Label(s"${item.name}(s) per"),
-      durationField
+      durationField,
+      new Label("and with"),
+      speedModuleCountField,
+      new Label("speed modules and"),
+      productivityModuleCountField,
+      new Label("productivity modules.")
     )
   }
   object requiredSilosLabel extends Label {
@@ -93,11 +116,19 @@ class RocketSiloCalculation(controller: RecipeSearch, item: Item, recipe: Recipe
     contents += Swing.VGlue
   }
 
-  listenTo(amountField, durationField.selection, calculationPanel)
+  listenTo(amountField, durationField.selection, calculationPanel, speedModuleCountField, productivityModuleCountField)
 
   reactions += {
-    case ValueChanged(`amountField`) | SelectionChanged(`durationField`) =>
-      val result: CalculationResult = calculator.calculateRocketBuilding(item, recipe, amountField.getInt, durationField.toDuration)
+    case ValueChanged(`amountField`) | SelectionChanged(`durationField`) | ValueChanged(`speedModuleCountField`) | ValueChanged(`productivityModuleCountField`) =>
+      val result: CalculationResult = calculator.calculateRocketBuilding(
+        item,
+        recipe,
+        amountField.getInt,
+        durationField.toDuration,
+        Modules(
+          Module.speed(3)(speedModuleCountField.getInt),
+          Module.productivity(3)(productivityModuleCountField.getInt)
+        ))
       publish(CalculationUpdated(result.crafters, result.energyRequired, result.ingredients))
     case e: IngredientClicked => publish(e)
   }

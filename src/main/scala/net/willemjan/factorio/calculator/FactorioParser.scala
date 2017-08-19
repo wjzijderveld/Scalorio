@@ -91,8 +91,16 @@ class FactorioParser(loader: LuaLoader) {
         case "recipe" => Recipe(
           table.get("name").toString,
           mapCraftingCategory(table.get("category").optstring(LuaString.valueOf("crafting")).toString),
-          buildIngredients(table),
-          table.get("energy_required").optdouble(1.0),
+          if (table.keys().exists(key => Seq("normal", "expensive").contains(key.tojstring()))) {
+            buildIngredients(table.get("normal").checktable())
+          } else {
+            buildIngredients(table)
+          },
+          if (table.keys().exists(key => Seq("normal", "expensive").contains(key.tojstring()))) {
+            table.get("normal").checktable().get("energy_required").optdouble(1.0)
+          } else {
+            table.get("energy_required").optdouble(1.0)
+          },
           if (table.keys().exists(key => Seq("normal", "expensive").contains(key.tojstring()))) {
             buildResults(table.get("normal").checktable())
           } else {
